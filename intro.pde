@@ -1,157 +1,212 @@
-import ddf.minim.*;  //宣言
- 
-Minim        mini;    //Minimオブジェクト変数
-AudioPlayer  player;  //音楽制御用インスタンス
-int base_time,decision;
-int max = 272; // 曲数272
-float time;
-String name, total;
- 
+import ddf.minim.*;
+
+Minim minim;
+AudioPlayer player;
+int baseTime, decision;
+final int numSongs = 279;
+float playbackTime;
+String currentSong, totalTime;
+
+//------------------------
+// エラーメッセージを表示する
+//------------------------
+void showErrorMessage(String message) {
+  fill(255, 0, 0);
+  textSize(20);
+  textAlign(CENTER);
+  text(message, width/2, height/2);
+}
+
 //------------------------
 // 初期処理関数
 //------------------------
-void setup(){
-  boolean breakFlg = false;  //初期処理エラーFLG
-  decision = (int)random(max); 
-  name = "" + decision + ".mp3";
-  time = 500; //再生時間の初期値
-  total = "" + time / 1000;
-  
-  size(400,400);
-  
-  //Minimインスタンスを作成する
-  mini = new Minim( this );
-    
-  //音楽ファイルを読み込む
-  player = mini.loadFile(name);
-  if( player == null ){
-    println( "loadFile() error" );
-    breakFlg = true;
+void setup() {
+  size(400, 400);
+  textSize(16);
+  textAlign(LEFT, TOP);
+
+  try {
+    decision = int(random(numSongs));
+    currentSong = decision + ".mp3";
+    playbackTime = 1000; //再生時間の初期値
+    totalTime = (playbackTime / 1000.0) + "s";
+
+    // Minimインスタンスを作成する
+    minim = new Minim(this);
+
+    // 音楽ファイルを読み込む
+    loadAudioFile();
+
+    player.pause(); // 初期状態では再生停止状態とする
+  } catch (Exception e) {
+    handleInitializationError(e);
   }
-  
-  println("");
-  println("");
-  println("");
-  println("");
-  
-  textSize( 16 );
-  textAlign( LEFT, TOP );
-    
-  if( breakFlg == true ){  
-    //エラーなら終了
-    noLoop();
-    exit();
-  }
-  
 }
- 
+
+//------------------------
+// 音楽ファイルを読み込む
+//------------------------
+void loadAudioFile() {
+  player = minim.loadFile(currentSong);
+  if (player == null) {
+    String errorMessage = "エラー: 音楽ファイルの読み込みに失敗しました: " + currentSong;
+    throw new RuntimeException(errorMessage);
+  }
+}
+
+//------------------------
+// ネクストオーディオの読み込みエラーを処理する
+//------------------------
+void handleNextAudioLoadingError(Exception e) {
+  String errorMessage = "エラー: 次の音楽ファイルの読み込みに失敗しました。\n" + e.getMessage();
+  println("エラー: " + errorMessage);
+  showErrorMessage(errorMessage);
+}
+
+//------------------------
+// 初期化エラーを処理する
+//------------------------
+void handleInitializationError(Exception e) {
+  String errorMessage = "エラー: アプリケーションの初期化に失敗しました。\n" + e.getMessage();
+  println("エラー: " + errorMessage);
+  showErrorMessage(errorMessage);
+  noLoop();
+  exit();
+}
+
 //------------------------
 // 描画処理関数
 //------------------------
-void draw(){
-  background( 255 );
-  
-  //状態表示
-  String msg;
-  if( player.isPlaying() ){
-    msg = "Playing";
+void draw() {
+  background(255);
+
+  // 状態表示
+  String status;
+  if (player.isPlaying()) {
+    status = "Playing";
   } else {
-    msg = "Stopped";
+    status = "Stopped";
   }
-  fill(129, 41, 144); //ボタン1
-  rect (20, 20, 360, 150);
-  fill( 0 );
-  textSize(50);
-  text( msg, 110, 65 );
   
+  // 再生状態に基づいてボタンの色を設定する
+  color buttonColor;
+  if (player.isPlaying()) {
+    buttonColor = color(0, 255, 0); // 再生中の色
+  } else {
+    buttonColor = color(129, 41, 144); // 停止中の色
+  }
+
+  // 色を更新したボタンを描画する
+  fill(buttonColor); // ボタン1
+  rect(20, 20, 360, 150);
+  fill(0);
+  textSize(50);
+  text(status, 110, 65);
+
   fill(0, 0, 255); //ボタン2
-  rect (20, 190, 100, 100);
+  rect(20, 190, 100, 100);
   fill(0);
   textSize(40);
-  text( "-0.1s", 30, 215);
-  
+  text("-0.1s", 30, 215);
+
   fill(255, 0, 0); //ボタン3
-  rect (140, 190, 110, 100);
+  rect(140, 190, 110, 100);
   fill(0);
   textSize(40);
-  text( "+0.1s", 150, 215);
-  
+  text("+0.1s", 150, 215);
+
   fill(0, 255, 255); //total
-  rect (270, 190, 110, 100);
+  rect(270, 190, 110, 100);
   fill(0);
   textSize(40);
-  text( "total", 285, 190);
-  text( total+"s", 290, 230);
-  
+  text("total", 285, 190);
+  text(totalTime, 290, 230);
+
   fill(245, 20, 238); //ボタン4
-  rect (20, 310, 170, 80);
+  rect(20, 310, 170, 80);
   fill(0);
   textSize(50);
-  text( "Answer", 30, 315);
-  
+  text("Answer", 30, 315);
+
   fill(251, 145, 24); //ボタン5
-  rect (210, 310, 170, 80);
+  rect(210, 310, 170, 80);
   fill(0);
   textSize(50);
-  text( "Next", 240, 315);
-  
-  if (millis()-base_time > time){
+  text("Next", 240, 315);
+
+  if (millis() - baseTime > playbackTime) {
     player.pause();
-    }
+  }
 }
- 
+
+//------------------------
+// キーボード押下イベント
+//------------------------
+void keyPressed() {
+  if (keyCode == 32) { // スペースキーのkeyCodeは32
+    if (!player.isPlaying()) {
+      player.rewind();
+      baseTime = millis();
+      player.play();
+    } else {
+      player.pause();
+    }
+  }
+}
+
 //------------------------
 // マウス押下イベント
 //------------------------
-void mousePressed(){  
+void mousePressed() {
   //マウス押下縦位置検査
-  if ((20 < mouseX && mouseX < 380)&&(20 < mouseY && mouseY < 170)){ //ボタン1
-  if( player.isPlaying() == false ){
-    //必ず先頭から演奏開始
-    player.rewind();
-    base_time = millis();
-    player.play();
+  if (20 < mouseX && mouseX < 380 && 20 < mouseY && mouseY < 170) { //ボタン1
+    if (!player.isPlaying()) {
+      //必ず先頭から演奏開始
+      player.rewind();
+      baseTime = millis();
+      player.play();
+    }
   }
-  
+
+  if (20 < mouseX && mouseX < 120 && 190 < mouseY && mouseY < 290) { //ボタン2
+    if (playbackTime >= 100) {
+      playbackTime -= 100;
+      totalTime = (playbackTime / 1000.0) + "s";
+    }
   }
-  
-  if ((20 < mouseX && mouseX < 120)&&(190 < mouseY && mouseY < 290)){ //ボタン2
-  time = time - 100;
-  total = "" + time / 1000;
+
+  if (140 < mouseX && mouseX < 240 && 190 < mouseY && mouseY < 290) { //ボタン3
+    playbackTime += 100;
+    totalTime = (playbackTime / 1000.0) + "s";
   }
-  
-  if ((140 < mouseX && mouseX < 240)&&(190 < mouseY && mouseY < 290)){ //ボタン3
-  time = time + 100;
-  total = "" + time / 1000;
+
+  if (210 < mouseX && mouseX < 380 && 310 < mouseY && mouseY < 390) { // ボタン5
+    player.pause();
+    decision = int(random(numSongs));
+    currentSong = decision + ".mp3";
+
+    try {
+      loadAudioFile();
+    } catch (Exception e) {
+      handleNextAudioLoadingError(e);
+    }
+
+    println("\n\n\n\n");
+    println("next");
   }
-  
-  if ((210 < mouseX && mouseX < 380)&&(310 < mouseY && mouseY < 390)){ //ボタン5
-  player.pause();
-  decision = (int)random(max);
-  name = "" + decision + ".mp3";
-  player = mini.loadFile(name);
-  if( player == null ){
-    println( "loadFile() error" ); 
-  }
-  println("");
-  println("");
-  println("");
-  println("");
-  println("next");
-  }
-  
-  if ((20 < mouseX && mouseX < 190)&&(310 < mouseY && mouseY < 390)){ //ボタン4
-  player.pause();
-  switch(decision){
-    case 0:
-    println("Answer");
-    println("ぐるぐるカーテン");
-    break;
-    case 1:
-    println("Answer");
-    println("左胸の勇気");
-    break;
-    case 2:
+
+  if (20 < mouseX && mouseX < 190 && 310 < mouseY && mouseY < 390) { // ボタン4
+    player.pause();
+    switch (decision) {
+      case 0:
+        println("Answer");
+        println("ぐるぐるカーテン");
+        break;
+      case 1:
+        println("Answer");
+        println("左胸の勇気");
+        break;
+      case 2:
     println("Answer");
     println("乃木坂の詩");
     break;
@@ -1222,13 +1277,42 @@ void mousePressed(){
     case 269:
     println("Answer");
     println("考えないようにする");
-    break;case 270:
+    break;
+    case 270:
     println("Answer");
     println("お別れタコス");
     break;
     case 271:
     println("Answer");
     println("命の冒涜");
+    break;
+    case 272:
+    println("Answer");
+    println("Monopoly");
+    break;
+    case 273:
+    println("Answer");
+    println("思い出が止まらなくなる");
+    break;
+    case 274:
+    println("Answer");
+    println("助手席をずっと空けていた");
+    break;
+    case 275:
+    println("Answer");
+    println("羊飼いよ");
+    break;
+    case 276:
+    println("Answer");
+    println("手ごねハンバーグ");
+    break;
+    case 277:
+    println("Answer");
+    println("スタイリッシュ");
+    break;
+    case 278:
+    println("Answer");
+    println("いつの日にか、あの歌を...");
     break;
   }
   }  
