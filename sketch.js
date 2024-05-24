@@ -13,7 +13,7 @@ function showErrorMessage(message) {
 }
 
 function preload() {
-  // Googleドライブの公開リンクを使用して音楽ファイルを読み込みます
+  // Googleドライブの公開リンクを使用して音楽ファイルを読み込みます!
   for (let i = 0; i < numSongs; i++) {
     songFiles.push(loadSound(`https://drive.google.com/uc?export=download&id=YOUR_GOOGLE_DRIVE_FILE_ID_${i}`));
   }
